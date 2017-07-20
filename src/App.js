@@ -6,14 +6,63 @@ import _ from 'lodash'
 import {Navbar, Jumbotron, Button, Nav, NavItem, NavDropdown,
   MenuItem, FormGroup, FormControl} from 'react-bootstrap';
 import {BootstrapTable, TableHeaderColumn} from 'react-bootstrap-table';
+import elasticsearch from 'elasticsearch'
 
 var web3 = require('web3');
+//var elasticsearch = require('elasticsearch')
 
-
-
+const esClient = new elasticsearch.Client({
+  host: '127.0.0.1:9200/customer',
+  log: 'error'
+})
 
 class App extends Component {
+
+  constructor(props) {
+    super(props);
+       this.state = { contractJson:[], results:[], IPFSContract:'', IPFSText: '--',
+      ETHEREUM_CLIENT: 'a', UserMessage: [],
+      contractAddress: '0x8d3e374e9dfcf7062fe8fc5bd5476b939a99b3ed',
+      ZsendAddress:'0xd73e172751e751d274037cb1f668eb637df55e33',ZsendContract:''}
+
+    this.Login = this.Login.bind(this)
+    this.handleChange = this.handleChange.bind(this)
+  }
+
+Login() {
+  var username = this.inputUserName.value;
+  var password = this.inputPassword.value;
+  console.log("username = ", username)
+  console.log("pwd = ", password)
+
+}
+handleChange (  ) {
+//  const search_query = event.target.value
+  var searchQ = this.searchParm.value;
+var search_queryES="name:" + searchQ + "*"
+  esClient.search({
+    q: search_queryES
+  }).then(function ( body ) {
+    this.setState({
+      results: body.hits.hits
+    })
+    console.log(this.state.results)
+  }.bind(this), function ( error ) {
+    console.trace( error.message );
+  });
+}
   render() {
+    var products=[];
+    for (var i = 0; i < this.state.results.length; i++) {
+       var  customerName =  this.state.results[i];
+       var cname = customerName._source.name;
+          products.push({ 'name':   cname  });
+        }
+       var tableHtml =
+    <BootstrapTable data={products} striped={true} hover={true}>
+        <TableHeaderColumn dataField="name" isKey={true} dataAlign="center" dataSort={true}>Name</TableHeaderColumn>
+
+      </BootstrapTable>
     const navbarInstance = (
   <Navbar>
     <Navbar.Header>
@@ -35,19 +84,24 @@ class App extends Component {
     <Navbar.Collapse>
    <Navbar.Form pullLeft>
      <FormGroup>
-       <FormControl type="text" placeholder="Search" />
+       <FormControl inputRef={(input) =>  this.searchParm = input}
+       type="text" placeholder="Search" />
      </FormGroup>
      {' '}
-     <Button type="submit">Submit</Button>
+
+     <Button type="submit" onClick={() => this.handleChange()}>Search</Button>
+
    </Navbar.Form>
 
 <Navbar.Form pullRight>
   <FormGroup>
-    <FormControl type="text" placeholder="User Name" />
-    <FormControl type="text" placeholder="Password" />
+    <FormControl inputRef={(input) =>  this.inputUserName = input}
+    type="text" placeholder="User Name" />
+    <FormControl inputRef={(input) =>  this.inputPassword = input}
+     type="text" placeholder="Password" />
   </FormGroup>
   {' '}
-  <Button type="submit">Login</Button>
+  <Button type="submit" onClick={() => this.Login()}>Login</Button>
 </Navbar.Form>
 </Navbar.Collapse>
   </Navbar>
@@ -55,6 +109,9 @@ class App extends Component {
     return (
       <div  >
         {navbarInstance}
+        <div>
+          {tableHtml}
+        </div>
       </div>
     );
   }
