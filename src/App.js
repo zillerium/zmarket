@@ -11,8 +11,13 @@ import elasticsearch from 'elasticsearch'
 var web3 = require('web3');
 //var elasticsearch = require('elasticsearch')
 
+var selectRowProp= {
+  mode: "checkbox",
+  clickToSelect: true
+}
+
 const esClient = new elasticsearch.Client({
-  host: '127.0.0.1:9200/customer',
+  host: '127.0.0.1:9200/product',
   log: 'error'
 })
 
@@ -27,6 +32,10 @@ class App extends Component {
 
     this.Login = this.Login.bind(this)
     this.handleChange = this.handleChange.bind(this)
+    this.imageFormatter = this.imageFormatter.bind(this)
+    this.buttonFormatter = this.buttonFormatter.bind(this)
+    this.multilinecell = this.multilinecell.bind(this)
+
   }
 
 Login() {
@@ -36,10 +45,15 @@ Login() {
   console.log("pwd = ", password)
 
 }
+
+multilinecell (cell, row) {
+  return "<textarea readonly class='form-control cell' rows='3'>"+ cell + "</textarea>";
+}
+
 handleChange (  ) {
 //  const search_query = event.target.value
   var searchQ = this.searchParm.value;
-var search_queryES="name:" + searchQ + "*"
+var search_queryES="partdesc:" + searchQ + "*"
   esClient.search({
     q: search_queryES
   }).then(function ( body ) {
@@ -51,18 +65,55 @@ var search_queryES="name:" + searchQ + "*"
     console.trace( error.message );
   });
 }
+
+imageFormatter(cell, row) {
+  return (<img style={{width:50}} src={cell}/>)
+}
+buttonFormatter(cell, row) {
+  return (<BootstrapTable type="submit"></BootstrapTable>)
+}
+getSelectedRowKeys() {
+  console.log(this.refs.table.state.selectedRowKeys)
+}
+//  <TableHeaderColumn dataField="button"   dataAlign="center"
+//  dataFormat={this.buttonFormatter}>Buy</TableHeaderColumn>
+
+    //                "imageurl": "34215000",
+    //                "partdesc": "3-Hole basin mixer installation with star handles, escutcheons with short spout, wall mounted spout 166 mm long normal spray flow rate: 5 l/min operating pressure: min. 1 bar / max. 10 bar flush grated waste - water flow cannot be stopped ",
+    ///                "partnumber": "34215000",
+    //                "partman": "Grohe"
   render() {
     var products=[];
     for (var i = 0; i < this.state.results.length; i++) {
        var  customerName =  this.state.results[i];
-       var cname = customerName._source.name;
-          products.push({ 'name':   cname  });
+       var partdesc = customerName._source.partdesc;
+      var partnumber = customerName._source.partnumber;
+        var partman = customerName._source.partman;
+          var imageurl = customerName._source.imageurl;
+       var mynewname = 'trevor oakley data field';
+       var myimageurl = 'https://s14.postimg.org/c3w0pd569/groheimage.jpg'
+          products.push({
+          'partnumber':   partnumber,
+          'imageurl': imageurl,
+          'partdesc': partdesc,
+          'partman': partman
+        });
         }
        var tableHtml =
-    <BootstrapTable data={products} striped={true} hover={true}>
-        <TableHeaderColumn dataField="name" isKey={true} dataAlign="center" dataSort={true}>Name</TableHeaderColumn>
-
+       <div>
+       <button onClick={this.getSelectedRowKeys.bind(this)}>Buy</button>
+    <BootstrapTable data={products} selectRow={selectRowProp} ref='table'
+    striped={true} hover={true}>
+        <TableHeaderColumn      dataField="imageurl"  width='200px' dataAlign="center"
+        dataFormat={this.imageFormatter}>Image</TableHeaderColumn>
+        <TableHeaderColumn   width='200px'   dataField="partnumber" isKey={true} dataAlign="center"
+        dataSort={true}>Part Number</TableHeaderColumn>
+        <TableHeaderColumn   dataField="partdesc" dataFormat={this.multilinecell}  dataAlign="center"
+        dataSort={true}>Desc</TableHeaderColumn>
+        <TableHeaderColumn   dataField="partman" width='200px'  dataAlign="center"
+        dataSort={true}>Manufacturer</TableHeaderColumn>
       </BootstrapTable>
+      </div>
     const navbarInstance = (
   <Navbar>
     <Navbar.Header>
